@@ -1,21 +1,859 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#14120F">
-<title>Cadence</title>
-<link rel="canonical" href="./Cadence.dc.html">
-<noscript><meta http-equiv="refresh" content="0; url=./Cadence.dc.html"></noscript>
-<style>
-  html, body { margin: 0; height: 100%; background: #14120F; color: #97907F;
-    font-family: 'IBM Plex Sans', system-ui, sans-serif; }
-  main { height: 100%; display: flex; align-items: center; justify-content: center; }
-  a { color: #C9E24B; }
-</style>
-<script>location.replace('./Cadence.dc.html' + location.search + location.hash);</script>
+<script src="./support.js"></script>
 </head>
 <body>
-<main><p>Opening <a href="./Cadence.dc.html">Cadence</a>…</p></main>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#14120F" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="manifest" href="./manifest.json" />
+<link rel="apple-touch-icon" href="./icon-192.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #14120F; color: #F3EEE5; font-family: 'IBM Plex Sans', system-ui, sans-serif; -webkit-font-smoothing: antialiased; overscroll-behavior-y: none; }
+  * { box-sizing: border-box; }
+  input, select, button, textarea { font: inherit; color: inherit; }
+  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.6); }
+  a { color: #C9E24B; text-decoration: none; }
+  a:hover { color: #DCEE85; }
+  ::selection { background: #C9E24B; color: #14120F; }
+</style>
+<script>
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    window.addEventListener('load', function () { navigator.serviceWorker.register('./sw.js').catch(function () {}); });
+  }
+</script>
+</helmet>
+
+<div style="min-height: 100vh; background: #14120F; padding: 0 0 96px;">
+  <div style="max-width: 620px; margin: 0 auto; padding: 0 18px;">
+
+    <header style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 28px 0 22px;">
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 27px; font-weight: 700; letter-spacing: -0.02em;">Cadence</div>
+        <div style="font-size: 13px; color: #97907F;">{{ headerSub }}</div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <sc-if value="{{ inDetail }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ goHome }}" style="background: none; border: 1px solid #2E2A24; border-radius: 999px; padding: 9px 15px; font-size: 13px; color: #97907F; cursor: pointer;" style-hover="border-color: #4A4636; color: #F3EEE5;">All activities</button>
+        </sc-if>
+        <button onClick="{{ openData }}" style="background: none; border: 1px solid #2E2A24; border-radius: 999px; padding: 9px 15px; font-size: 13px; color: #97907F; cursor: pointer;" style-hover="border-color: #4A4636; color: #F3EEE5;">Data</button>
+      </div>
+    </header>
+
+    <!-- ============ HOME ============ -->
+    <sc-if value="{{ showHome }}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+
+        <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="border: 1px dashed #2E2A24; border-radius: 14px; padding: 34px 24px; text-align: center; display: flex; flex-direction: column; gap: 10px; align-items: center;">
+            <div style="font-family: 'Space Grotesk', sans-serif; font-size: 18px;">Nothing tracked yet</div>
+            <div style="font-size: 14px; color: #97907F; max-width: 340px; line-height: 1.5;">An activity holds sub-activities. Each logged session takes a date and one or more values in a unit you name — a plain count, or a time like 1:23.4.</div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 8px;">
+              <button onClick="{{ newActivity }}" style="background: #C9E24B; color: #14120F; border: 0; border-radius: 999px; padding: 12px 22px; font-weight: 600; font-size: 15px; cursor: pointer;">New activity</button>
+              <button onClick="{{ openData }}" style="background: none; border: 1px solid #2E2A24; color: #97907F; border-radius: 999px; padding: 12px 20px; font-size: 14px; cursor: pointer;" style-hover="border-color: #C9E24B; color: #C9E24B;">Import JSON</button>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-for list="{{ activities }}" as="a" hint-placeholder-count="2">
+          <div style="background: #1D1A16; border: 1px solid #2E2A24; border-radius: 14px; overflow: hidden;">
+            <div onClick="{{ a.open }}" style="display: flex; align-items: center; gap: 12px; padding: 16px 18px; cursor: pointer;" style-hover="background: #221E19;">
+              <div style="width: 8px; height: 8px; border-radius: 999px; flex: none; background: {{ a.statusColor }};"></div>
+              <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px;">
+                <div style="font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 500;">{{ a.name }}</div>
+                <div style="font-size: 12.5px; color: {{ a.statusColor }};">{{ a.statusText }}</div>
+              </div>
+              <div style="font-size: 12px; color: #6F6959; text-align: right; flex: none;">{{ a.unit }}</div>
+            </div>
+            <sc-for list="{{ a.subs }}" as="s" hint-placeholder-count="2">
+              <div style="display: flex; align-items: center; gap: 14px; padding: 12px 18px; border-top: 1px solid #221E19;">
+                <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+                  <div style="font-size: 14px; color: #D8D2C4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ s.name }}</div>
+                  <div style="font-size: 11.5px; color: #6F6959;">{{ s.metricLabel }}</div>
+                </div>
+                <svg viewBox="0 0 120 34" width="120" height="34" preserveAspectRatio="none" style="flex: none; overflow: visible;">
+                  <path d="{{ s.spark }}" fill="none" stroke="{{ s.deltaColor }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                  <circle cx="{{ s.lastX }}" cy="{{ s.lastY }}" r="2.8" fill="{{ s.deltaColor }}"></circle>
+                </svg>
+                <div style="flex: none; text-align: right; display: flex; flex-direction: column; gap: 2px; min-width: 72px;">
+                  <div style="font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 500;">{{ s.lastLabel }}</div>
+                  <div style="font-size: 12px; font-weight: 600; color: {{ s.deltaColor }};">{{ s.deltaLabel }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+
+        <sc-if value="{{ hasActivities }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ newActivity }}" style="align-self: flex-start; background: none; border: 1px solid #2E2A24; color: #C9E24B; border-radius: 999px; padding: 11px 20px; font-size: 14px; font-weight: 600; cursor: pointer;" style-hover="border-color: #C9E24B;">+ New activity</button>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- ============ DETAIL ============ -->
+    <sc-if value="{{ inDetail }}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+
+        <div style="background: #1D1A16; border: 1px solid #2E2A24; border-radius: 14px; padding: 18px;">
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.01em;">{{ current.name }}</div>
+              <div style="font-size: 13px; color: {{ current.statusColor }};">{{ current.statusText }}</div>
+              <div style="font-size: 12.5px; color: #6F6959;">unit: {{ current.unit }} · {{ current.typeLabel }} · {{ current.cadenceLabel }}</div>
+            </div>
+            <div style="display: flex; gap: 8px; flex: none;">
+              <button onClick="{{ current.toggleHold }}" style="background: none; border: 1px solid #2E2A24; border-radius: 999px; padding: 9px 15px; font-size: 13px; color: #97907F; cursor: pointer;" style-hover="border-color: #4A4636; color: #F3EEE5;">{{ current.holdLabel }}</button>
+              <button onClick="{{ editCurrent }}" style="background: none; border: 1px solid #2E2A24; border-radius: 999px; padding: 9px 15px; font-size: 13px; color: #97907F; cursor: pointer;" style-hover="border-color: #4A4636; color: #F3EEE5;">Edit</button>
+            </div>
+          </div>
+        </div>
+
+        <sc-for list="{{ current.subs }}" as="s" hint-placeholder-count="2">
+          <div style="background: #1D1A16; border: 1px solid #2E2A24; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;">
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <div style="font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 500;">{{ s.name }}</div>
+                <div style="font-size: 11.5px; color: #6F6959;">{{ s.metricLabel }} · {{ s.dirLabel }}</div>
+              </div>
+              <div style="text-align: right; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700; line-height: 1;">{{ s.lastLabel }}</div>
+                <div style="font-size: 13px; font-weight: 600; color: {{ s.deltaColor }};">{{ s.deltaLabel }}</div>
+              </div>
+            </div>
+
+            <div style="position: relative;">
+              <svg viewBox="0 0 620 170" width="100%" height="170" preserveAspectRatio="none" style="display: block; overflow: visible;">
+                <path d="{{ s.gridPath }}" stroke="#2A2620" stroke-width="1" fill="none"></path>
+                <path d="{{ s.area }}" fill="{{ s.areaFill }}" stroke="none"></path>
+                <path d="{{ s.chart }}" fill="none" stroke="{{ s.deltaColor }}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                <sc-for list="{{ s.points }}" as="p" hint-placeholder-count="0">
+                  <circle cx="{{ p.x }}" cy="{{ p.y }}" r="4" fill="#14120F" stroke="{{ s.deltaColor }}" stroke-width="2.5"></circle>
+                </sc-for>
+              </svg>
+              <div style="display: flex; justify-content: space-between; font-size: 11px; color: #6F6959; padding-top: 8px;">
+                <div>{{ s.firstDate }}</div>
+                <div>{{ s.rangeLabel }}</div>
+                <div>{{ s.lastDate }}</div>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border-top: 1px solid #221E19; padding-top: 14px;">
+              <input type="date" value="{{ s.formDate }}" onChange="{{ s.setDate }}" style="background: #14120F; border: 1px solid #2E2A24; border-radius: 9px; padding: 10px 11px; font-size: 14px; min-height: 44px;" />
+              <input type="text" inputmode="{{ s.inputMode }}" value="{{ s.formRaw }}" onChange="{{ s.setRaw }}" placeholder="{{ s.placeholder }}" style="flex: 1; min-width: 120px; background: #14120F; border: 1px solid #2E2A24; border-radius: 9px; padding: 10px 12px; font-size: 14px; min-height: 44px;" />
+              <button onClick="{{ s.log }}" style="background: #C9E24B; color: #14120F; border: 0; border-radius: 9px; padding: 11px 18px; font-weight: 600; font-size: 14px; min-height: 44px; cursor: pointer;">Log</button>
+            </div>
+            <div style="font-size: 11.5px; color: #6F6959; margin-top: -8px;">{{ s.hint }}</div>
+
+            <sc-if value="{{ s.hasEntries }}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; flex-direction: column; gap: 1px; border-top: 1px solid #221E19; padding-top: 12px;">
+                <sc-for list="{{ s.history }}" as="e" hint-placeholder-count="3">
+                  <div style="display: flex; align-items: center; gap: 10px; padding: 8px 0;">
+                    <div style="font-size: 13px; color: #97907F; width: 96px; flex: none;">{{ e.dateLabel }}</div>
+                    <div style="flex: 1; font-size: 13.5px; color: #D8D2C4;">{{ e.valuesLabel }}</div>
+                    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 14px; color: #F3EEE5;">{{ e.aggLabel }}</div>
+                    <button onClick="{{ e.remove }}" style="background: none; border: 0; color: #6F6959; font-size: 16px; cursor: pointer; padding: 4px 6px;" style-hover="color: #E2603F;">×</button>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <!-- ============ EDITOR ============ -->
+    <sc-if value="{{ editing }}" hint-placeholder-val="{{ false }}">
+      <div style="position: fixed; inset: 0; background: rgba(10, 9, 7, 0.72); backdrop-filter: blur(3px); z-index: 40; display: flex; align-items: flex-end; justify-content: center; overflow: auto;">
+        <div style="background: #1D1A16; border: 1px solid #2E2A24; border-radius: 18px 18px 0 0; width: 100%; max-width: 620px; padding: 22px 18px 32px; display: flex; flex-direction: column; gap: 18px;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700;">{{ draftTitle }}</div>
+            <button onClick="{{ cancelEdit }}" style="background: none; border: 0; color: #97907F; font-size: 22px; cursor: pointer;">×</button>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #97907F;">Activity name
+              <input type="text" value="{{ draft.name }}" onChange="{{ setName }}" placeholder="Exercise" style="background: #14120F; border: 1px solid #2E2A24; border-radius: 9px; padding: 12px; font-size: 15px; color: #F3EEE5;" />
+            </label>
+            <div style="display: flex; gap: 10px;">
+              <label style="flex: 1; display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #97907F;">Unit (your words)
+                <input type="text" value="{{ draft.unit }}" onChange="{{ setUnit }}" placeholder="reps" style="background: #14120F; border: 1px solid #2E2A24; border-radius: 9px; padding: 12px; font-size: 15px; color: #F3EEE5;" />
+              </label>
+              <label style="width: 132px; display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #97907F;">Interval (days)
+                <input type="number" min="1" value="{{ draft.intervalDays }}" onChange="{{ setInterval }}" style="background: #14120F; border: 1px solid #2E2A24; border-radius: 9px; padding: 12px; font-size: 15px; color: #F3EEE5;" />
+              </label>
+            </div>
+            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #97907F;">Values are
+              <select value="{{ draft.valueType }}" onChange="{{ setValueType }}" style="background: #14120F; border: 1px solid #2E2A24; border-radius: 9px; padding: 12px; font-size: 15px;">
+                <option value="number">Numbers — 10, 7.5</option>
+                <option value="time">Times — 1:23.4, 12:05, 1:02:30</option>
+              </select>
+            </label>
+            <div style="font-size: 11.5px; color: #6F6959; line-height: 1.5;">{{ valueTypeHint }}</div>
+            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #97907F;">Cadence tracking
+              <select value="{{ draftOnHold }}" onChange="{{ setOnHold }}" style="background: #14120F; border: 1px solid #2E2A24; border-radius: 9px; padding: 12px; font-size: 15px;">
+                <option value="active">Active — nudge me when it's due</option>
+                <option value="hold">On hold — stop checking</option>
+              </select>
+            </label>
+            <div style="font-size: 11.5px; color: #6F6959; line-height: 1.5;">{{ holdHint }}</div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="font-size: 12px; color: #97907F; text-transform: uppercase; letter-spacing: 0.08em;">Sub-activities</div>
+            <sc-for list="{{ draftSubs }}" as="s" hint-placeholder-count="1">
+              <div style="border: 1px solid #2E2A24; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <input type="text" value="{{ s.name }}" onChange="{{ s.setName }}" placeholder="Chin-up" style="flex: 1; background: #14120F; border: 1px solid #2E2A24; border-radius: 9px; padding: 11px; font-size: 14.5px; color: #F3EEE5;" />
+                  <button onClick="{{ s.remove }}" style="background: none; border: 1px solid #2E2A24; border-radius: 9px; color: #97907F; width: 40px; height: 40px; font-size: 17px; cursor: pointer; flex: none;" style-hover="color: #E2603F; border-color: #E2603F;">×</button>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <label style="flex: 1; display: flex; flex-direction: column; gap: 5px; font-size: 11.5px; color: #6F6959;">Compare by
+                    <select value="{{ s.metric }}" onChange="{{ s.setMetric }}" style="background: #14120F; border: 1px solid #2E2A24; border-radius: 9px; padding: 11px; font-size: 14px;">
+                      <option value="total">Session total</option>
+                      <option value="best">Best set</option>
+                      <option value="avg">Average</option>
+                    </select>
+                  </label>
+                  <label style="flex: 1; display: flex; flex-direction: column; gap: 5px; font-size: 11.5px; color: #6F6959;">Progress means
+                    <select value="{{ s.direction }}" onChange="{{ s.setDirection }}" style="background: #14120F; border: 1px solid #2E2A24; border-radius: 9px; padding: 11px; font-size: 14px;">
+                      <option value="up">Higher is better</option>
+                      <option value="down">Lower is better</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+            </sc-for>
+            <button onClick="{{ addSub }}" style="align-self: flex-start; background: none; border: 1px dashed #2E2A24; color: #97907F; border-radius: 9px; padding: 10px 16px; font-size: 13.5px; cursor: pointer;" style-hover="border-color: #C9E24B; color: #C9E24B;">+ Sub-activity</button>
+          </div>
+
+          <div style="display: flex; gap: 10px; align-items: center; border-top: 1px solid #2E2A24; padding-top: 16px;">
+            <button onClick="{{ saveDraft }}" style="background: #C9E24B; color: #14120F; border: 0; border-radius: 999px; padding: 13px 24px; font-weight: 600; font-size: 15px; cursor: pointer;">Save</button>
+            <button onClick="{{ cancelEdit }}" style="background: none; border: 1px solid #2E2A24; color: #97907F; border-radius: 999px; padding: 13px 20px; font-size: 14px; cursor: pointer;">Cancel</button>
+            <sc-if value="{{ canDelete }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ deleteActivity }}" style="margin-left: auto; background: none; border: 0; color: #E2603F; font-size: 13.5px; cursor: pointer; padding: 10px;">Delete activity</button>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ============ DATA (JSON load / save) ============ -->
+    <sc-if value="{{ dataSheet }}" hint-placeholder-val="{{ false }}">
+      <div style="position: fixed; inset: 0; background: rgba(10, 9, 7, 0.72); backdrop-filter: blur(3px); z-index: 45; display: flex; align-items: flex-end; justify-content: center; overflow: auto;">
+        <div style="background: #1D1A16; border: 1px solid #2E2A24; border-radius: 18px 18px 0 0; width: 100%; max-width: 620px; padding: 22px 18px 32px; display: flex; flex-direction: column; gap: 18px;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700;">Save &amp; load</div>
+            <button onClick="{{ closeData }}" style="background: none; border: 0; color: #97907F; font-size: 22px; cursor: pointer;">×</button>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="font-size: 12px; color: #97907F; text-transform: uppercase; letter-spacing: 0.08em;">Save</div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <button onClick="{{ exportFile }}" style="background: #C9E24B; color: #14120F; border: 0; border-radius: 999px; padding: 12px 20px; font-weight: 600; font-size: 14px; cursor: pointer;">Download .json</button>
+              <button onClick="{{ copyJson }}" style="background: none; border: 1px solid #2E2A24; color: #97907F; border-radius: 999px; padding: 12px 18px; font-size: 14px; cursor: pointer;" style-hover="border-color: #C9E24B; color: #C9E24B;">Copy JSON</button>
+            </div>
+            <div style="font-size: 11.5px; color: #6F6959;">{{ statsLabel }}</div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 10px; border-top: 1px solid #2E2A24; padding-top: 16px;">
+            <div style="font-size: 12px; color: #97907F; text-transform: uppercase; letter-spacing: 0.08em;">Load</div>
+            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #97907F;">Existing activities
+              <select value="{{ importMode }}" onChange="{{ setImportMode }}" style="background: #14120F; border: 1px solid #2E2A24; border-radius: 9px; padding: 12px; font-size: 15px;">
+                <option value="merge">Merge — keep what's here, add what's new</option>
+                <option value="replace">Replace — wipe and load the file</option>
+              </select>
+            </label>
+            <input type="file" accept="application/json,.json" onChange="{{ importFile }}" style="background: #14120F; border: 1px solid #2E2A24; border-radius: 9px; padding: 11px; font-size: 13px; color: #97907F; width: 100%;" />
+            <textarea value="{{ jsonText }}" onChange="{{ setJsonText }}" spellcheck="false" rows="8" placeholder="…or paste JSON here" style="background: #14120F; border: 1px solid #2E2A24; border-radius: 9px; padding: 11px; font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #D8D2C4; line-height: 1.45; resize: vertical; width: 100%;"></textarea>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+              <button onClick="{{ applyPasted }}" style="background: none; border: 1px solid #C9E24B; color: #C9E24B; border-radius: 999px; padding: 12px 18px; font-weight: 600; font-size: 14px; cursor: pointer;">Load pasted JSON</button>
+              <button onClick="{{ resetJsonText }}" style="background: none; border: 1px solid #2E2A24; color: #97907F; border-radius: 999px; padding: 12px 18px; font-size: 14px; cursor: pointer;">Reset box</button>
+            </div>
+          </div>
+
+          <sc-if value="{{ hasMessage }}" hint-placeholder-val="{{ false }}">
+            <div style="border: 1px solid {{ messageColor }}; border-radius: 10px; padding: 11px 13px; font-size: 13px; color: {{ messageColor }};">{{ message }}</div>
+          </sc-if>
+
+          <div style="border-top: 1px solid #2E2A24; padding-top: 14px; font-size: 11.5px; color: #6F6959;">{{ versionLabel }}</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ============ TOAST ============ -->
+    <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+      <div style="position: fixed; left: 50%; transform: translateX(-50%); bottom: 24px; z-index: 60; background: #221E19; border: 1px solid #2E2A24; border-radius: 999px; padding: 11px 20px; font-size: 13.5px; color: #F3EEE5; box-shadow: 0 8px 26px rgba(0,0,0,0.5); max-width: 92vw;">{{ toast }}</div>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 430, &quot;height&quot;: 900}}">
+class Component extends DCLogic {
+  state = { data: null, view: 'home', activityId: null, draft: null, forms: {}, dataSheet: false, jsonText: '', importMode: 'merge', message: null, messageBad: false, toast: null };
+
+  KEY = 'cadence.v1';
+  DAY = 86400000;
+  FILE_VERSION = 1;        // shape of the export file
+  APP_VERSION = '1.3.0';   // keep in step with CACHE in sw.js
+
+  componentDidMount() {
+    let data = null;
+    try { data = JSON.parse(localStorage.getItem(this.KEY) || 'null'); } catch (e) { data = null; }
+    if (!data || !Array.isArray(data.activities)) data = { activities: [] };
+    this.setState({ data: { activities: this.normalizeActivities(data.activities) } });
+  }
+
+  persist(activities) {
+    const data = { activities: activities };
+    try { localStorage.setItem(this.KEY, JSON.stringify(data)); } catch (e) {}
+    this.setState({ data: data });
+  }
+
+  uid() { return Math.random().toString(36).slice(2, 9); }
+  today() { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
+  dayNum(iso) { return Math.floor(new Date(iso + 'T00:00:00').getTime() / this.DAY); }
+  fmtDate(iso) {
+    const d = new Date(iso + 'T00:00:00');
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+  round(n) { return Math.abs(n - Math.round(n)) < 0.005 ? String(Math.round(n)) : n.toFixed(1); }
+
+  // ---- values: plain numbers or times ----
+  isTime(a) { return !!a && a.valueType === 'time'; }
+
+  // "1:23.4" -> 83.4 · "12:05" -> 725 · "1:02:30" -> 3750 · "90" -> 90
+  // Plain mode keeps the old behaviour: a bare decimal number.
+  parseValue(token, isTime) {
+    const t = String(token == null ? '' : token).trim();
+    if (!t) return NaN;
+    if (isTime && t.indexOf(':') !== -1) {
+      const parts = t.split(':');
+      if (parts.length > 3) return NaN;
+      let secs = 0;
+      for (let i = 0; i < parts.length; i++) {
+        const piece = parts[i].trim();
+        if (!/^\d*\.?\d+$/.test(piece)) return NaN;
+        const n = parseFloat(piece);
+        if (isNaN(n)) return NaN;
+        if (i > 0 && n >= 60) return NaN;
+        secs = secs * 60 + n;
+      }
+      return secs;
+    }
+    const n = parseFloat(t.replace(',', '.'));
+    return isNaN(n) ? NaN : n;
+  }
+
+  parseValues(raw, isTime) {
+    return String(raw == null ? '' : raw)
+      .split(/[,;\s]+/)
+      .map(t => this.parseValue(t, isTime))
+      .filter(n => !isNaN(n));
+  }
+
+  fmtTime(sec) {
+    const neg = sec < 0;
+    const t = Math.round(Math.abs(Number(sec) || 0) * 10) / 10;
+    const h = Math.floor(t / 3600);
+    const m = Math.floor((t - h * 3600) / 60);
+    const s = t - h * 3600 - m * 60;
+    const whole = Math.abs(s - Math.round(s)) < 0.05;
+    const body = whole ? String(Math.round(s)) : s.toFixed(1);
+    const ss = (s < 10 ? '0' : '') + body;
+    const head = h ? h + ':' + (m < 10 ? '0' : '') + m : String(m);
+    return (neg ? '−' : '') + head + ':' + ss;
+  }
+
+  fmtValue(n, isTime) { return isTime ? this.fmtTime(n) : this.round(n); }
+
+  agg(vals, metric) {
+    if (!vals.length) return 0;
+    if (metric === 'best') return Math.max.apply(null, vals);
+    const sum = vals.reduce((a, b) => a + b, 0);
+    return metric === 'avg' ? sum / vals.length : sum;
+  }
+
+  metricName(m) { return m === 'best' ? 'best set' : m === 'avg' ? 'average' : 'session total'; }
+
+  // ---- mutations ----
+  logEntry(actId, subId, date, raw) {
+    const act = this.state.data.activities.find(a => a.id === actId);
+    const vals = this.parseValues(raw, this.isTime(act));
+    if (!vals.length) {
+      this.flash(this.isTime(act) ? 'Use times like 1:23.4 or 12:05' : 'Enter one or more numbers');
+      return;
+    }
+    const acts = this.state.data.activities.map(a => {
+      if (a.id !== actId) return a;
+      const entries = a.entries.filter(e => !(e.subId === subId && e.date === date));
+      return Object.assign({}, a, { entries: entries.concat([{ id: this.uid(), subId: subId, date: date, values: vals }]) });
+    });
+    const forms = Object.assign({}, this.state.forms);
+    forms[subId] = { date: date, raw: '' };
+    this.setState({ forms: forms });
+    this.persist(acts);
+  }
+
+  removeEntry(actId, entryId) {
+    this.persist(this.state.data.activities.map(a =>
+      a.id === actId ? Object.assign({}, a, { entries: a.entries.filter(e => e.id !== entryId) }) : a));
+  }
+
+  form(subId) {
+    return this.state.forms[subId] || { date: this.today(), raw: '' };
+  }
+  setForm(subId, patch) {
+    const forms = Object.assign({}, this.state.forms);
+    forms[subId] = Object.assign({}, this.form(subId), patch);
+    this.setState({ forms: forms });
+  }
+
+  flash(msg) {
+    this.setState({ toast: msg });
+    if (this._toastTimer) clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => this.setState({ toast: null }), 3200);
+  }
+
+  blankDraft() {
+    return { id: null, name: '', unit: 'reps', intervalDays: 2, valueType: 'number', onHold: false, subs: [{ id: this.uid(), name: '', metric: 'total', direction: 'up' }] };
+  }
+  patchDraft(p) { this.setState({ draft: Object.assign({}, this.state.draft, p) }); }
+  patchSub(i, p) {
+    const subs = this.state.draft.subs.slice();
+    subs[i] = Object.assign({}, subs[i], p);
+    this.patchDraft({ subs: subs });
+  }
+  saveDraft() {
+    const d = this.state.draft;
+    const subs = d.subs.filter(s => s.name.trim()).map(s => Object.assign({}, s, { name: s.name.trim() }));
+    if (!d.name.trim() || !subs.length) return;
+    const isTime = d.valueType === 'time';
+    const clean = {
+      name: d.name.trim(),
+      unit: (d.unit || '').trim() || (isTime ? 'time' : 'units'),
+      intervalDays: Math.max(1, parseInt(d.intervalDays, 10) || 1),
+      valueType: isTime ? 'time' : 'number',
+      onHold: !!d.onHold,
+      subs: subs
+    };
+    const acts = this.state.data.activities.slice();
+    if (d.id) {
+      const i = acts.findIndex(a => a.id === d.id);
+      acts[i] = Object.assign({}, acts[i], clean);
+    } else {
+      acts.push(Object.assign({ id: this.uid(), entries: [] }, clean));
+    }
+    this.setState({ draft: null });
+    this.persist(acts);
+  }
+
+  // ---- JSON save / load ----
+  // Shape: { app: 'cadence', version: 1, exportedAt: ISO, activities: [ … ] }
+  toJSON(activities) {
+    const acts = activities || (this.state.data && this.state.data.activities) || [];
+    return JSON.stringify({
+      app: 'cadence',
+      version: this.FILE_VERSION,
+      appVersion: this.APP_VERSION,
+      exportedAt: new Date().toISOString(),
+      activities: acts
+    }, null, 2);
+  }
+
+  // Accepts a full export, a bare { activities: [] }, or a bare array.
+  // Anything unrecognised is dropped rather than trusted.
+  normalizeActivities(raw) {
+    const list = Array.isArray(raw) ? raw
+      : (raw && Array.isArray(raw.activities)) ? raw.activities
+      : null;
+    if (!list) return null;
+
+    const seen = {};
+    const out = [];
+    for (let i = 0; i < list.length; i++) {
+      const a = list[i];
+      if (!a || typeof a !== 'object') continue;
+      const name = String(a.name == null ? '' : a.name).trim();
+      if (!name) continue;
+
+      let id = typeof a.id === 'string' && a.id ? a.id : this.uid();
+      while (seen[id]) id = this.uid();
+      seen[id] = true;
+
+      const valueType = a.valueType === 'time' ? 'time' : 'number';
+      const subIds = {};
+      const subs = (Array.isArray(a.subs) ? a.subs : []).map(s => {
+        if (!s || typeof s !== 'object') return null;
+        const sName = String(s.name == null ? '' : s.name).trim();
+        if (!sName) return null;
+        let sid = typeof s.id === 'string' && s.id ? s.id : this.uid();
+        while (subIds[sid]) sid = this.uid();
+        subIds[sid] = true;
+        return {
+          id: sid,
+          name: sName,
+          metric: (s.metric === 'best' || s.metric === 'avg') ? s.metric : 'total',
+          direction: s.direction === 'down' ? 'down' : 'up'
+        };
+      }).filter(Boolean);
+      if (!subs.length) continue;
+
+      const entryIds = {};
+      const entries = (Array.isArray(a.entries) ? a.entries : []).map(e => {
+        if (!e || typeof e !== 'object') return null;
+        if (!subIds[e.subId]) return null;
+        const date = String(e.date == null ? '' : e.date).slice(0, 10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+        const values = (Array.isArray(e.values) ? e.values : [e.values])
+          .map(v => typeof v === 'number' ? v : this.parseValue(v, valueType === 'time'))
+          .filter(v => typeof v === 'number' && isFinite(v));
+        if (!values.length) return null;
+        let eid = typeof e.id === 'string' && e.id ? e.id : this.uid();
+        while (entryIds[eid]) eid = this.uid();
+        entryIds[eid] = true;
+        return { id: eid, subId: e.subId, date: date, values: values };
+      }).filter(Boolean);
+
+      out.push({
+        id: id,
+        name: name,
+        unit: String(a.unit == null ? '' : a.unit).trim() || (valueType === 'time' ? 'time' : 'units'),
+        intervalDays: Math.max(1, parseInt(a.intervalDays, 10) || 1),
+        valueType: valueType,
+        onHold: a.onHold === true,
+        subs: subs,
+        entries: entries
+      });
+    }
+    return out;
+  }
+
+  // Match on id first, then on case-insensitive name. Sub-activities merge by
+  // name so an export/import round-trip on another device still lines up.
+  mergeActivities(existing, incoming) {
+    const out = existing.map(a => Object.assign({}, a, { subs: a.subs.slice(), entries: a.entries.slice() }));
+    const byId = {}, byName = {};
+    out.forEach((a, i) => { byId[a.id] = i; byName[a.name.toLowerCase()] = i; });
+
+    incoming.forEach(inc => {
+      const at = byId[inc.id] !== undefined ? byId[inc.id] : byName[inc.name.toLowerCase()];
+      if (at === undefined) {
+        out.push(inc);
+        byId[inc.id] = out.length - 1;
+        byName[inc.name.toLowerCase()] = out.length - 1;
+        return;
+      }
+      const target = out[at];
+      const subMap = {};
+      target.subs.forEach(s => { subMap[s.name.toLowerCase()] = s.id; });
+      inc.subs.forEach(s => {
+        const key = s.name.toLowerCase();
+        if (subMap[key]) return;
+        subMap[key] = s.id;
+        target.subs.push(s);
+      });
+      const remap = {};
+      inc.subs.forEach(s => { remap[s.id] = subMap[s.name.toLowerCase()]; });
+
+      const keyed = {};
+      target.entries.forEach(e => { keyed[e.subId + '|' + e.date] = e; });
+      inc.entries.forEach(e => {
+        const subId = remap[e.subId];
+        if (!subId) return;
+        keyed[subId + '|' + e.date] = { id: e.id, subId: subId, date: e.date, values: e.values };
+      });
+      target.entries = Object.keys(keyed).map(k => keyed[k]);
+    });
+    return out;
+  }
+
+  toggleHold(actId) {
+    let held = false;
+    const acts = this.state.data.activities.map(a => {
+      if (a.id !== actId) return a;
+      held = !a.onHold;
+      return Object.assign({}, a, { onHold: held });
+    });
+    this.persist(acts);
+    this.flash(held ? 'On hold — cadence checks paused' : 'Resumed — tracking cadence again');
+  }
+
+  say(msg, bad) { this.setState({ message: msg, messageBad: !!bad }); }
+
+  loadJSON(text, mode) {
+    let parsed;
+    try { parsed = JSON.parse(text); } catch (e) { this.say('That is not valid JSON.', true); return; }
+    const incoming = this.normalizeActivities(parsed);
+    if (!incoming) { this.say('No "activities" array in that JSON.', true); return; }
+    if (!incoming.length) { this.say('That JSON has no usable activities.', true); return; }
+
+    const current = (this.state.data && this.state.data.activities) || [];
+    const next = mode === 'replace' ? incoming : this.mergeActivities(current, incoming);
+    const entryCount = incoming.reduce((n, a) => n + a.entries.length, 0);
+
+    this.setState({ view: 'home', activityId: null, draft: null, dataSheet: false, message: null, jsonText: '' });
+    this.persist(next);
+    this.flash((mode === 'replace' ? 'Loaded ' : 'Merged ') + incoming.length + ' activit' + (incoming.length === 1 ? 'y' : 'ies') + ' · ' + entryCount + ' session' + (entryCount === 1 ? '' : 's'));
+  }
+
+  saveJSONFile() {
+    const text = this.toJSON();
+    const name = 'cadence-' + this.today() + '.json';
+    try {
+      const blob = new Blob([text], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      this.say('Saved ' + name + '.', false);
+    } catch (e) {
+      this.say('Download blocked here — copy the JSON below instead.', true);
+    }
+  }
+
+  copyJSON() {
+    const text = this.toJSON();
+    const done = () => this.say('JSON copied to the clipboard.', false);
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, () => this.say('Clipboard blocked — select the JSON below and copy it.', true));
+        return;
+      }
+    } catch (e) {}
+    this.setState({ jsonText: text });
+    this.say('Clipboard unavailable — the JSON is in the box below.', true);
+  }
+
+  readJSONFile(ev) {
+    const input = ev.target;
+    const file = input.files && input.files[0];
+    if (!file) return;
+    const mode = this.state.importMode;
+    const reader = new FileReader();
+    reader.onload = () => {
+      // Clear first, while the input is still mounted, so picking the same
+      // file again after a failed load still fires onChange.
+      try { input.value = ''; } catch (e) {}
+      this.loadJSON(String(reader.result || ''), mode);
+    };
+    reader.onerror = () => { this.say('Could not read that file.', true); };
+    reader.readAsText(file);
+  }
+
+  // ---- derivation ----
+  buildSub(a, sub, detail) {
+    const isTime = this.isTime(a);
+    const unitSuffix = isTime ? '' : ' ' + a.unit;
+    const entries = a.entries.filter(e => e.subId === sub.id)
+      .slice().sort((x, y) => x.date < y.date ? -1 : 1);
+    const series = entries.map(e => ({ date: e.date, v: this.agg(e.values.map(Number), sub.metric) }));
+    const last = series.length ? series[series.length - 1].v : null;
+    const prev = series.length > 1 ? series[series.length - 2].v : null;
+    const delta = (last !== null && prev !== null) ? last - prev : null;
+    const good = delta === null || delta === 0 ? null : (sub.direction === 'up' ? delta > 0 : delta < 0);
+    const color = good === null ? '#8FA6B5' : good ? '#C9E24B' : '#E2603F';
+
+    const geo = (w, h, pad) => {
+      const vs = series.map(p => p.v);
+      let lo = vs.length ? Math.min.apply(null, vs) : 0;
+      let hi = vs.length ? Math.max.apply(null, vs) : 1;
+      if (hi === lo) { hi = lo + 1; lo = lo - 1; }
+      const n = series.length;
+      return series.map((p, i) => ({
+        x: n === 1 ? w / 2 : pad + (i * (w - pad * 2)) / (n - 1),
+        y: h - pad - ((p.v - lo) / (hi - lo)) * (h - pad * 2)
+      }));
+    };
+
+    const sp = geo(120, 34, 4);
+    const spark = sp.length > 1 ? 'M' + sp.map(p => p.x.toFixed(1) + ' ' + p.y.toFixed(1)).join(' L ') :
+      sp.length === 1 ? 'M' + (sp[0].x - 5).toFixed(1) + ' ' + sp[0].y.toFixed(1) + ' L ' + (sp[0].x + 5).toFixed(1) + ' ' + sp[0].y.toFixed(1) : '';
+
+    const out = {
+      id: sub.id,
+      name: sub.name,
+      metricLabel: this.metricName(sub.metric) + ' · ' + a.unit,
+      dirLabel: sub.direction === 'up' ? 'higher is better' : 'lower is better',
+      lastLabel: last === null ? '—' : this.fmtValue(last, isTime),
+      deltaLabel: delta === null ? (series.length ? 'first entry' : 'no data') : (delta === 0 ? 'no change' : (delta > 0 ? '+' : '−') + this.fmtValue(Math.abs(delta), isTime)),
+      deltaColor: color,
+      spark: spark,
+      lastX: sp.length ? sp[sp.length - 1].x : 0,
+      lastY: sp.length ? sp[sp.length - 1].y : 17,
+      hasEntries: entries.length > 0
+    };
+
+    if (!detail) return out;
+
+    const W = 620, H = 170, P = 14;
+    const pts = geo(W, H, P);
+    const path = pts.length > 1 ? 'M' + pts.map(p => p.x.toFixed(1) + ' ' + p.y.toFixed(1)).join(' L ') :
+      pts.length === 1 ? 'M' + (pts[0].x - 18).toFixed(1) + ' ' + pts[0].y.toFixed(1) + ' L ' + (pts[0].x + 18).toFixed(1) + ' ' + pts[0].y.toFixed(1) : '';
+    const f = this.form(sub.id);
+    const vs = series.map(p => p.v);
+
+    return Object.assign(out, {
+      points: pts.map(p => ({ x: p.x.toFixed(1), y: p.y.toFixed(1) })),
+      chart: path,
+      area: pts.length > 1 ? path + ' L ' + pts[pts.length - 1].x.toFixed(1) + ' ' + (H - P) + ' L ' + pts[0].x.toFixed(1) + ' ' + (H - P) + ' Z' : '',
+      areaFill: color === '#E2603F' ? 'rgba(226,96,63,0.10)' : color === '#C9E24B' ? 'rgba(201,226,75,0.10)' : 'rgba(143,166,181,0.10)',
+      gridPath: [0.5, 0.5, 0.5].map((_, i) => 'M' + P + ' ' + (P + i * (H - P * 2) / 2).toFixed(1) + ' L ' + (W - P) + ' ' + (P + i * (H - P * 2) / 2).toFixed(1)).join(' '),
+      firstDate: series.length ? this.fmtDate(series[0].date) : '',
+      lastDate: series.length ? this.fmtDate(series[series.length - 1].date) : '',
+      rangeLabel: vs.length ? this.fmtValue(Math.min.apply(null, vs), isTime) + '–' + this.fmtValue(Math.max.apply(null, vs), isTime) + unitSuffix : 'no entries yet',
+      formDate: f.date,
+      formRaw: f.raw,
+      inputMode: isTime ? 'text' : 'numeric',
+      placeholder: isTime ? '1:23.4, 1:25' : '10, 7, 5',
+      hint: isTime
+        ? 'Space- or comma-separate sets. Times read as m:ss, h:mm:ss, or plain seconds — decimals welcome (1:23.4).'
+        : 'Comma-separate sets — one number is fine. Values in ' + a.unit + '.',
+      setDate: (ev) => this.setForm(sub.id, { date: ev.target.value }),
+      setRaw: (ev) => this.setForm(sub.id, { raw: ev.target.value }),
+      log: () => this.logEntry(a.id, sub.id, f.date || this.today(), f.raw),
+      history: entries.slice().reverse().map(e => ({
+        dateLabel: this.fmtDate(e.date),
+        valuesLabel: e.values.map(v => this.fmtValue(Number(v), isTime)).join(' · ') + unitSuffix,
+        aggLabel: this.fmtValue(this.agg(e.values.map(Number), sub.metric), isTime),
+        remove: () => this.removeEntry(a.id, e.id)
+      }))
+    });
+  }
+
+  buildActivity(a, detail) {
+    const dates = a.entries.map(e => e.date).sort();
+    const last = dates.length ? dates[dates.length - 1] : null;
+    const gap = last === null ? null : this.dayNum(this.today()) - this.dayNum(last);
+    let statusText, statusColor;
+    // On hold short-circuits the cadence check entirely — no due, no overdue,
+    // no red. It stays logged and charted, it just stops nagging.
+    if (a.onHold) {
+      statusText = gap === null ? 'on hold' : 'on hold · last logged ' + gap + 'd ago';
+      statusColor = '#6F6959';
+    }
+    else if (gap === null) { statusText = 'never logged'; statusColor = '#8FA6B5'; }
+    else if (gap === 0) { statusText = 'logged today'; statusColor = '#C9E24B'; }
+    else if (gap <= a.intervalDays) { statusText = gap + 'd ago · on cadence'; statusColor = '#C9E24B'; }
+    else if (gap <= a.intervalDays * 2) { statusText = gap + 'd ago · due now'; statusColor = '#E3B341'; }
+    else { statusText = gap + 'd ago · overdue by ' + (gap - a.intervalDays) + 'd'; statusColor = '#E2603F'; }
+    return {
+      id: a.id, name: a.name, unit: a.unit, intervalDays: a.intervalDays,
+      typeLabel: this.isTime(a) ? 'times' : 'numbers',
+      onHold: !!a.onHold,
+      holdLabel: a.onHold ? 'Resume' : 'Hold',
+      cadenceLabel: a.onHold ? 'paused' : 'every ' + a.intervalDays + ' day(s)',
+      toggleHold: () => this.toggleHold(a.id),
+      statusText: statusText, statusColor: statusColor,
+      open: () => this.setState({ view: 'detail', activityId: a.id }),
+      subs: a.subs.map(s => this.buildSub(a, s, detail))
+    };
+  }
+
+  renderVals() {
+    const acts = (this.state.data && this.state.data.activities) || [];
+    const current = acts.find(a => a.id === this.state.activityId) || null;
+    const inDetail = this.state.view === 'detail' && !!current;
+    const d = this.state.draft;
+    const overdue = acts.filter(a => {
+      if (a.onHold) return false;
+      const ds = a.entries.map(e => e.date).sort();
+      if (!ds.length) return true;
+      return this.dayNum(this.today()) - this.dayNum(ds[ds.length - 1]) > a.intervalDays;
+    }).length;
+    const entryTotal = acts.reduce((n, a) => n + a.entries.length, 0);
+    const held = acts.filter(a => a.onHold).length;
+    const active = acts.length - held;
+
+    let headerSub;
+    if (acts.length === 0) headerSub = 'consistency without a spreadsheet';
+    else if (active === 0) headerSub = held + ' activit' + (held === 1 ? 'y' : 'ies') + ' · all on hold';
+    else {
+      headerSub = overdue > 0
+        ? overdue + ' of ' + active + ' need attention'
+        : active + ' activit' + (active === 1 ? 'y' : 'ies') + ' · all on cadence';
+      if (held) headerSub += ' · ' + held + ' on hold';
+    }
+
+    return {
+      activities: acts.map(a => this.buildActivity(a, false)),
+      hasActivities: acts.length > 0,
+      isEmpty: !!this.state.data && acts.length === 0,
+      showHome: !inDetail,
+      inDetail: inDetail,
+      current: inDetail ? this.buildActivity(current, true) : {},
+      headerSub: headerSub,
+      goHome: () => this.setState({ view: 'home', activityId: null }),
+      newActivity: () => this.setState({ draft: this.blankDraft() }),
+      editCurrent: () => this.setState({ draft: JSON.parse(JSON.stringify(current)) }),
+      editing: !!d,
+      draft: d || { name: '', unit: '', intervalDays: '', valueType: 'number' },
+      draftOnHold: d && d.onHold ? 'hold' : 'active',
+      setOnHold: (ev) => this.patchDraft({ onHold: ev.target.value === 'hold' }),
+      draftTitle: d && d.id ? 'Edit activity' : 'New activity',
+      holdHint: d && d.onHold
+        ? 'Held activities keep their history and charts, but never turn amber or red and are left out of the "need attention" count.'
+        : 'Put an activity on hold when you are injured, travelling, or deliberately pausing it.',
+      valueTypeHint: d && d.valueType === 'time'
+        ? 'Log entries as 1:23.4 (m:ss), 1:02:30 (h:mm:ss), or a bare number of seconds. Charts and totals stay in seconds and display back as times.'
+        : 'Log entries as plain numbers — 10, 7.5, 5.',
+      canDelete: !!(d && d.id),
+      draftSubs: (d ? d.subs : []).map((s, i) => ({
+        name: s.name, metric: s.metric, direction: s.direction,
+        setName: (ev) => this.patchSub(i, { name: ev.target.value }),
+        setMetric: (ev) => this.patchSub(i, { metric: ev.target.value }),
+        setDirection: (ev) => this.patchSub(i, { direction: ev.target.value }),
+        remove: () => this.patchDraft({ subs: d.subs.filter((_, j) => j !== i) })
+      })),
+      setName: (ev) => this.patchDraft({ name: ev.target.value }),
+      setUnit: (ev) => this.patchDraft({ unit: ev.target.value }),
+      setInterval: (ev) => this.patchDraft({ intervalDays: ev.target.value }),
+      setValueType: (ev) => this.patchDraft({ valueType: ev.target.value }),
+      addSub: () => this.patchDraft({ subs: d.subs.concat([{ id: this.uid(), name: '', metric: 'total', direction: 'up' }]) }),
+      saveDraft: () => this.saveDraft(),
+      cancelEdit: () => this.setState({ draft: null }),
+      deleteActivity: () => {
+        const id = d.id;
+        this.setState({ draft: null, view: 'home', activityId: null });
+        this.persist(acts.filter(a => a.id !== id));
+      },
+
+      // ---- save & load sheet ----
+      dataSheet: !!this.state.dataSheet,
+      openData: () => this.setState({ dataSheet: true, message: null, jsonText: this.toJSON() }),
+      closeData: () => this.setState({ dataSheet: false, message: null }),
+      statsLabel: acts.length + ' activit' + (acts.length === 1 ? 'y' : 'ies') + ' · ' + entryTotal + ' logged session' + (entryTotal === 1 ? '' : 's') + (held ? ' · ' + held + ' on hold' : ''),
+      versionLabel: 'Cadence v' + this.APP_VERSION + ' · file format v' + this.FILE_VERSION,
+      jsonText: this.state.jsonText,
+      setJsonText: (ev) => this.setState({ jsonText: ev.target.value }),
+      resetJsonText: () => this.setState({ jsonText: this.toJSON(), message: null }),
+      importMode: this.state.importMode,
+      setImportMode: (ev) => this.setState({ importMode: ev.target.value }),
+      exportFile: () => this.saveJSONFile(),
+      copyJson: () => this.copyJSON(),
+      importFile: (ev) => this.readJSONFile(ev),
+      applyPasted: () => this.loadJSON(this.state.jsonText || '', this.state.importMode),
+      hasMessage: !!this.state.message,
+      message: this.state.message || '',
+      messageColor: this.state.messageBad ? '#E2603F' : '#C9E24B',
+
+      hasToast: !!this.state.toast,
+      toast: this.state.toast || ''
+    };
+  }
+}
+</script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 {
   "name": "Cadence — activity progress",
   "short_name": "Cadence",
-  "start_url": "./Cadence.dc.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
