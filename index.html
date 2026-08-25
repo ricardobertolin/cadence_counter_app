@@ -3,7 +3,33 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  React is vendored rather than pulled from unpkg at runtime. support.js's
+  loadReactUmd() short-circuits when window.React and window.ReactDOM already
+  exist, so loading these first means the CDN is never contacted. Without it a
+  first-ever visit while offline, or any unpkg outage, renders a blank page.
+  Files are byte-identical to react@18.3.1 (verified against the SRI hashes
+  baked into support.js).
+-->
+<script src="./vendor/react.production.min.js"></script>
+<script src="./vendor/react-dom.production.min.js"></script>
 <script src="./support.js"></script>
+<script>
+  // Kept here in the real document head rather than in the helmet block, whose
+  // contents are re-applied on every render pass.
+  if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('./sw.js').catch(function () {});
+    });
+  }
+  // localStorage is the only copy of the user's data, and browsers may evict it
+  // under storage pressure. Asking once makes this origin's storage durable.
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persisted().then(function (already) {
+      if (!already) navigator.storage.persist().catch(function () {});
+    }).catch(function () {});
+  }
+</script>
 </head>
 <body>
 <x-dc>
@@ -26,11 +52,6 @@
   a:hover { color: #DCEE85; }
   ::selection { background: #C9E24B; color: #14120F; }
 </style>
-<script>
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-    window.addEventListener('load', function () { navigator.serviceWorker.register('./sw.js').catch(function () {}); });
-  }
-</script>
 </helmet>
 
 <div style="min-height: 100vh; background: #14120F; padding: 0 0 96px;">
@@ -72,10 +93,15 @@
                 <div style="font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 500;">{{ a.name }}</div>
                 <div style="font-size: 12.5px; color: {{ a.statusColor }};">{{ a.statusText }}</div>
               </div>
-              <div style="font-size: 12px; color: #6F6959; text-align: right; flex: none;">{{ a.unit }}</div>
+              <div style="font-size: 12px; color: #6F6959; flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 3px;">
+                <div>{{ a.unit }}</div>
+                <sc-if value="{{ a.hasStreak }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-size: 11.5px; font-weight: 600; color: {{ a.streakColor }}; white-space: nowrap;">{{ a.streakLabel }}</div>
+                </sc-if>
+              </div>
             </div>
             <sc-for list="{{ a.subs }}" as="s" hint-placeholder-count="2">
-              <div style="display: flex; align-items: center; gap: 14px; padding: 12px 18px; border-top: 1px solid #221E19;">
+              <div onClick="{{ s.open }}" style="display: flex; align-items: center; gap: 14px; padding: 12px 18px; border-top: 1px solid #221E19; cursor: pointer;" style-hover="background: #221E19;">
                 <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
                   <div style="font-size: 14px; color: #D8D2C4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ s.name }}</div>
                   <div style="font-size: 11.5px; color: #6F6959;">{{ s.metricLabel }}</div>
@@ -115,10 +141,22 @@
               <button onClick="{{ editCurrent }}" style="background: none; border: 1px solid #2E2A24; border-radius: 999px; padding: 9px 15px; font-size: 13px; color: #97907F; cursor: pointer;" style-hover="border-color: #4A4636; color: #F3EEE5;">Edit</button>
             </div>
           </div>
+          <sc-if value="{{ current.hasMomentum }}" hint-placeholder-val="{{ true }}">
+            <div style="display: flex; gap: 12px; border-top: 1px solid #221E19; margin-top: 16px; padding-top: 14px;">
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+                <div style="font-family: 'Space Grotesk', sans-serif; font-size: 21px; font-weight: 700; line-height: 1; color: {{ current.streakColor }};">{{ current.streakValue }}</div>
+                <div style="font-size: 11px; color: #6F6959;">{{ current.streakCaption }}</div>
+              </div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+                <div style="font-family: 'Space Grotesk', sans-serif; font-size: 21px; font-weight: 700; line-height: 1; color: {{ current.consistencyColor }};">{{ current.consistencyValue }}</div>
+                <div style="font-size: 11px; color: #6F6959;">{{ current.consistencyCaption }}</div>
+              </div>
+            </div>
+          </sc-if>
         </div>
 
         <sc-for list="{{ current.subs }}" as="s" hint-placeholder-count="2">
-          <div style="background: #1D1A16; border: 1px solid #2E2A24; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 16px;">
+          <div id="{{ s.domId }}" style="background: #1D1A16; border: 1px solid {{ s.cardBorder }}; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 16px; scroll-margin-top: 16px; transition: border-color 500ms ease;">
             <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;">
               <div style="display: flex; flex-direction: column; gap: 4px;">
                 <div style="font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 500;">{{ s.name }}</div>
@@ -139,6 +177,8 @@
                   <circle cx="{{ p.x }}" cy="{{ p.y }}" r="4" fill="#14120F" stroke="{{ s.deltaColor }}" stroke-width="2.5"></circle>
                 </sc-for>
               </svg>
+              <div style="position: absolute; left: {{ s.pbLeft }}; top: {{ s.pbTop }}; transform: translate(-50%, -50%); display: {{ s.pbDisplay }}; width: 17px; height: 17px; border: 1.5px solid #C9E24B; border-radius: 999px; pointer-events: none;"></div>
+              <div style="position: absolute; left: {{ s.pbLeft }}; top: {{ s.pbTop }}; transform: {{ s.pbTransform }}; display: {{ s.pbDisplay }}; background: #C9E24B; color: #14120F; font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; border-radius: 999px; padding: 2px 7px; pointer-events: none; white-space: nowrap;">{{ s.pbLabel }}</div>
               <div style="display: flex; justify-content: space-between; font-size: 11px; color: #6F6959; padding-top: 8px;">
                 <div>{{ s.firstDate }}</div>
                 <div>{{ s.rangeLabel }}</div>
@@ -298,12 +338,12 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 430, &quot;height&quot;: 900}}">
 class Component extends DCLogic {
-  state = { data: null, view: 'home', activityId: null, draft: null, forms: {}, dataSheet: false, jsonText: '', importMode: 'merge', message: null, messageBad: false, toast: null };
+  state = { data: null, view: 'home', activityId: null, focusSub: null, draft: null, forms: {}, dataSheet: false, jsonText: '', importMode: 'merge', message: null, messageBad: false, toast: null };
 
   KEY = 'cadence.v1';
   DAY = 86400000;
   FILE_VERSION = 1;        // shape of the export file
-  APP_VERSION = '1.3.0';   // keep in step with CACHE in sw.js
+  APP_VERSION = '1.5.0';   // keep in step with CACHE in sw.js
 
   componentDidMount() {
     let data = null;
@@ -384,6 +424,59 @@ class Component extends DCLogic {
 
   metricName(m) { return m === 'best' ? 'best set' : m === 'avg' ? 'average' : 'session total'; }
 
+  // ---- streak & consistency ----
+  // Cadence is an activity-level idea, so a day counts once no matter how many
+  // sub-activities were logged on it.
+  logDates(a) {
+    const seen = {};
+    a.entries.forEach(e => { seen[e.date] = 1; });
+    return Object.keys(seen).sort();
+  }
+
+  // Consecutive sessions, each logged within the activity's own interval of the
+  // one before it. The current gap counts too, so an overdue activity reads 0
+  // rather than showing a number it no longer holds.
+  streakOf(a) {
+    const dates = this.logDates(a);
+    if (!dates.length) return 0;
+    const k = Math.max(1, a.intervalDays);
+    if (this.dayNum(this.today()) - this.dayNum(dates[dates.length - 1]) > k) return 0;
+    let n = 1;
+    for (let i = dates.length - 1; i > 0; i--) {
+      if (this.dayNum(dates[i]) - this.dayNum(dates[i - 1]) > k) break;
+      n++;
+    }
+    return n;
+  }
+
+  // "logged 12 of 14 due": over the last ten cadences, how many of the sessions
+  // the interval asked for actually happened. The window never reaches back
+  // past the first entry, so a young activity is not marked down for days
+  // before it existed, and the result is capped at 100% — logging twice as
+  // often as planned is not 200% consistent, it is just consistent.
+  consistencyOf(a) {
+    const dates = this.logDates(a);
+    if (!dates.length) return null;
+    const k = Math.max(1, a.intervalDays);
+    const today = this.dayNum(this.today());
+    const from = Math.max(this.dayNum(dates[0]), today - k * 10 + 1);
+    const expected = Math.max(1, Math.round((today - from + 1) / k));
+    const actual = Math.min(expected, dates.filter(d => this.dayNum(d) >= from).length);
+    return { pct: Math.round((actual / expected) * 100), actual: actual, expected: expected };
+  }
+
+  // The entry that stands as the personal best: the extreme of the compare-by
+  // metric in whichever direction the user called progress. Ties resolve to the
+  // earliest, which is when the best was actually achieved.
+  pbIndex(series, direction) {
+    let at = -1;
+    for (let i = 0; i < series.length; i++) {
+      if (at === -1) { at = i; continue; }
+      if (direction === 'up' ? series[i].v > series[at].v : series[i].v < series[at].v) at = i;
+    }
+    return at;
+  }
+
   // ---- mutations ----
   logEntry(actId, subId, date, raw) {
     const act = this.state.data.activities.find(a => a.id === actId);
@@ -401,6 +494,22 @@ class Component extends DCLogic {
     forms[subId] = { date: date, raw: '' };
     this.setState({ forms: forms });
     this.persist(acts);
+
+    // Beating a personal best is the main reason to open the app, so say so.
+    // This entry replaces any existing one on the same date, which is why the
+    // previous best ignores that date.
+    const sub = act.subs.find(s => s.id === subId);
+    if (!sub) return;
+    const isTime = this.isTime(act);
+    const prior = act.entries
+      .filter(e => e.subId === subId && e.date !== date)
+      .map(e => this.agg(e.values.map(Number), sub.metric));
+    if (!prior.length) return;
+    const value = this.agg(vals, sub.metric);
+    const beat = sub.direction === 'up'
+      ? value > Math.max.apply(null, prior)
+      : value < Math.min.apply(null, prior);
+    if (beat) this.flash('New best for ' + sub.name + ': ' + this.fmtValue(value, isTime) + (isTime ? '' : ' ' + act.unit));
   }
 
   removeEntry(actId, entryId) {
@@ -415,6 +524,24 @@ class Component extends DCLogic {
     const forms = Object.assign({}, this.state.forms);
     forms[subId] = Object.assign({}, this.form(subId), patch);
     this.setState({ forms: forms });
+  }
+
+  // Opening from a sub-activity row scrolls that card into view and outlines it
+  // briefly, so tapping "Chin-up" lands on Chin-up rather than the top of a long
+  // activity. subId null means the activity header was tapped: no focus, no scroll.
+  openActivity(actId, subId) {
+    this.setState({ view: 'detail', activityId: actId, focusSub: subId || null }, () => {
+      if (!subId) { try { window.scrollTo(0, 0); } catch (e) {} return; }
+      const jump = () => {
+        const el = document.getElementById('sub-' + subId);
+        if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      };
+      if (typeof requestAnimationFrame === 'function') requestAnimationFrame(jump); else jump();
+      if (this._focusTimer) clearTimeout(this._focusTimer);
+      this._focusTimer = setTimeout(() => {
+        if (this.state.focusSub === subId) this.setState({ focusSub: null });
+      }, 1800);
+    });
   }
 
   flash(msg) {
@@ -600,7 +727,7 @@ class Component extends DCLogic {
     const next = mode === 'replace' ? incoming : this.mergeActivities(current, incoming);
     const entryCount = incoming.reduce((n, a) => n + a.entries.length, 0);
 
-    this.setState({ view: 'home', activityId: null, draft: null, dataSheet: false, message: null, jsonText: '' });
+    this.setState({ view: 'home', activityId: null, focusSub: null, draft: null, dataSheet: false, message: null, jsonText: '' });
     this.persist(next);
     this.flash((mode === 'replace' ? 'Loaded ' : 'Merged ') + incoming.length + ' activit' + (incoming.length === 1 ? 'y' : 'ies') + ' · ' + entryCount + ' session' + (entryCount === 1 ? '' : 's'));
   }
@@ -684,6 +811,10 @@ class Component extends DCLogic {
 
     const out = {
       id: sub.id,
+      domId: 'sub-' + sub.id,
+      // Highlighted only while it is the sub the user tapped in to reach.
+      cardBorder: this.state.focusSub === sub.id ? '#C9E24B' : '#2E2A24',
+      open: () => this.openActivity(a.id, sub.id),
       name: sub.name,
       metricLabel: this.metricName(sub.metric) + ' · ' + a.unit,
       dirLabel: sub.direction === 'up' ? 'higher is better' : 'lower is better',
@@ -705,7 +836,23 @@ class Component extends DCLogic {
     const f = this.form(sub.id);
     const vs = series.map(p => p.v);
 
+    // A single entry is trivially its own best, so the marker waits for a second
+    // one. Both the ring and its chip are plain HTML overlaid on the chart, not
+    // SVG: the chart is drawn with preserveAspectRatio="none", which would
+    // squash a circle into an oval and stretch any lettering. That means y is in
+    // raw pixels (the viewBox height matches the rendered height) while x has to
+    // be a percentage, since only the width is scaled.
+    const pbAt = series.length > 1 ? this.pbIndex(series, sub.direction) : -1;
+    const pb = pbAt === -1 ? null : pts[pbAt];
+
     return Object.assign(out, {
+      pbLeft: pb ? (pb.x / W * 100).toFixed(2) + '%' : '0',
+      pbTop: pb ? pb.y.toFixed(1) + 'px' : '0',
+      // Best-is-highest pins the marker to the top of the plot, where a chip
+      // above it would escape the card, so that case hangs below instead.
+      pbTransform: pb && pb.y < 34 ? 'translate(-50%, 95%)' : 'translate(-50%, -190%)',
+      pbDisplay: pb ? 'block' : 'none',
+      pbLabel: pb ? 'PB ' + this.fmtValue(series[pbAt].v, isTime) : '',
       points: pts.map(p => ({ x: p.x.toFixed(1), y: p.y.toFixed(1) })),
       chart: path,
       area: pts.length > 1 ? path + ' L ' + pts[pts.length - 1].x.toFixed(1) + ' ' + (H - P) + ' L ' + pts[0].x.toFixed(1) + ' ' + (H - P) + ' Z' : '',
@@ -749,6 +896,11 @@ class Component extends DCLogic {
     else if (gap <= a.intervalDays) { statusText = gap + 'd ago · on cadence'; statusColor = '#C9E24B'; }
     else if (gap <= a.intervalDays * 2) { statusText = gap + 'd ago · due now'; statusColor = '#E3B341'; }
     else { statusText = gap + 'd ago · overdue by ' + (gap - a.intervalDays) + 'd'; statusColor = '#E2603F'; }
+
+    // Both figures are read off the cadence clock, so holding an activity pauses
+    // them the same way it pauses the status colour: no clock, nothing to report.
+    const streak = this.streakOf(a);
+    const cons = this.consistencyOf(a);
     return {
       id: a.id, name: a.name, unit: a.unit, intervalDays: a.intervalDays,
       typeLabel: this.isTime(a) ? 'times' : 'numbers',
@@ -757,7 +909,16 @@ class Component extends DCLogic {
       cadenceLabel: a.onHold ? 'paused' : 'every ' + a.intervalDays + ' day(s)',
       toggleHold: () => this.toggleHold(a.id),
       statusText: statusText, statusColor: statusColor,
-      open: () => this.setState({ view: 'detail', activityId: a.id }),
+      hasMomentum: a.entries.length > 0 && !a.onHold,
+      streakValue: String(streak),
+      streakCaption: streak === 0 ? 'streak broken' : streak === 1 ? 'session in a row' : 'sessions in a row',
+      streakColor: streak >= 2 ? '#C9E24B' : '#97907F',
+      hasStreak: !a.onHold && streak >= 2,
+      streakLabel: streak + ' in a row',
+      consistencyValue: cons ? cons.pct + '%' : '—',
+      consistencyCaption: cons ? 'logged ' + cons.actual + ' of ' + cons.expected + ' due' : 'no sessions yet',
+      consistencyColor: !cons ? '#97907F' : cons.pct >= 80 ? '#C9E24B' : cons.pct >= 50 ? '#E3B341' : '#E2603F',
+      open: () => this.openActivity(a.id, null),
       subs: a.subs.map(s => this.buildSub(a, s, detail))
     };
   }
@@ -795,7 +956,7 @@ class Component extends DCLogic {
       inDetail: inDetail,
       current: inDetail ? this.buildActivity(current, true) : {},
       headerSub: headerSub,
-      goHome: () => this.setState({ view: 'home', activityId: null }),
+      goHome: () => this.setState({ view: 'home', activityId: null, focusSub: null }),
       newActivity: () => this.setState({ draft: this.blankDraft() }),
       editCurrent: () => this.setState({ draft: JSON.parse(JSON.stringify(current)) }),
       editing: !!d,
@@ -826,7 +987,7 @@ class Component extends DCLogic {
       cancelEdit: () => this.setState({ draft: null }),
       deleteActivity: () => {
         const id = d.id;
-        this.setState({ draft: null, view: 'home', activityId: null });
+        this.setState({ draft: null, view: 'home', activityId: null, focusSub: null });
         this.persist(acts.filter(a => a.id !== id));
       },
 
