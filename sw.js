@@ -1,4 +1,4 @@
-const CACHE='cadence-v1.5.0'; // keep in step with APP_VERSION in index.html
+const CACHE='cadence-v1.5.1'; // keep in step with APP_VERSION in index.html
 const ASSETS=[
   './','./index.html','./support.js','./manifest.json','./icon-192.png','./icon-512.png',
   './vendor/react.production.min.js','./vendor/react-dom.production.min.js'
